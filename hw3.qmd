@@ -43,6 +43,34 @@ library(car)
 library(glmnet)
 ```
 
+```{R}
+make_formula <- function(x){
+  as.formula(
+    paste("quality ~ ", paste(x, collapse = " + "))
+  )
+}
+
+# For example the following code will
+# result in a formula object
+# "quality ~ a + b + c"
+make_formula(c("a", "b", "c"))
+```
+
+```{R}
+make_model_matrix <- function(formula){
+  X <- model.matrix(formula, df)[, -1]
+  cnames <- colnames(X)
+  for(i in 1:ncol(X)){
+    if(!cnames[i] == "typewhite"){
+      X[, i] <- scale(X[, i])
+    } else {
+      colnames(X)[i] <- "type"
+    }
+  }
+  return(X)
+}
+```
+
 ## <br><br><br><br>
 
 ## Question 1
@@ -517,7 +545,7 @@ single tibble of summaries using the `bind_rows()` function from
 
 ```{R}
 models <- map(formulas, ~lm(.x, data = df)) 
-summaries <- map(models, ~glance(.x)) 
+summaries <- map(models, ~broom::glance(.x)) 
 all_summaries <- bind_rows(summaries)
 all_summaries
 ```
@@ -617,7 +645,7 @@ summary_table <- map(
   final_formulas, 
   \(x) {
     model <- lm(x, data = df)
-    glance(model) %>%
+    broom::glance(model) %>%
       select(sigma, adj.r.squared, AIC, df = df.residual, p.value = p.value)
   }
 ) %>% bind_rows()
@@ -639,19 +667,6 @@ The following function which takes as input a vector of column names `x`
 and outputs a `formula` object with `quality` as the response variable
 and the columns of `x` as the covariates.
 
-``` r
-make_formula <- function(x){
-  as.formula(
-    paste("quality ~ ", paste(x, collapse = " + "))
-  )
-}
-
-# For example the following code will
-# result in a formula object
-# "quality ~ a + b + c"
-make_formula(c("a", "b", "c"))
-```
-
 ```{R}
 make_formula <- function(x){
   as.formula(
@@ -670,21 +685,6 @@ make_formula(c("a", "b", "c"))
 The `make_model_matrix` function below takes a `formula` as input and
 outputs a **rescaled** model matrix `X` in a format amenable for
 `glmnet()`
-
-``` r
-make_model_matrix <- function(formula){
-  X <- model.matrix(formula, df)[, -1]
-  cnames <- colnames(X)
-  for(i in 1:ncol(X)){
-    if(!cnames[i] == "typewhite"){
-      X[, i] <- scale(X[, i])
-    } else {
-      colnames(X)[i] <- "type"
-    }
-  }
-  return(X)
-}
-```
 
 ```{R}
 make_model_matrix <- function(formula){
